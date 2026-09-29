@@ -1,149 +1,155 @@
 # 📸 OpenWebUI PhotoAgent
 
-OpenWebUI에서 Local LLM(Gemma 4 등)과 Vision 모델을 결합한 **전문가 수준의 대화형 AI 사진 보정 시스템**입니다.
+OpenWebUI에서 Local LLM(Gemma 4 등)과 Vision 모델을 결합한 **전문가 수준의 대화형 AI 사진 보정 에이전트**입니다.
 
-사용자가 사진을 업로드하면 AI가 EXIF 및 히스토그램을 정밀 분석하고, 사용자와 대화하며 보정 방향을 잡은 후 실제 이미지 보정을 수행합니다.
+사용자가 사진을 업로드하면 AI가 EXIF 및 히스토그램을 정밀 분석하고, 대화를 통해 보정 방향을 논의한 후 실제 이미지 보정을 수행합니다.
+
+> 💡 **전제 조건**: OpenWebUI와 Local LLM(LM Studio / Ollama 등)이 이미 정상 작동 중인 환경에서, 아래 파일들을 OpenWebUI 웹 화면에 등록하기만 하면 즉시 사용 가능합니다.
 
 ---
 
-## 🏗️ 프로젝트 구조
+## 📂 프로젝트 구성 파일
+
+OpenWebUI 웹 UI에 등록할 파일 목록입니다:
 
 ```text
 OpenwebUI_PhotoAgent/
-├── tools/
-│   ├── photo_analyzer.py      # 사진 분석 도구 (EXIF, 히스토그램, 품질/색상 분석)
-│   ├── photo_editor.py        # 사진 보정 도구 (15개 파라미터 + 9개 감성 프리셋)
-│   └── raw_processor.py       # RAW 파일 현상 도구 (Canon CR2/CR3, Samsung DNG 등)
-├── filters/
-│   └── photo_agent_filter.py  # 대화 흐름/상태 제어 필터 (Inlet/Outlet)
-├── knowledge/
-│   ├── photo_editing_basics.md       # 사진 보정 기초 이론 (노출, WB, 톤)
-│   ├── camera_profiles.md            # Canon 5D / Samsung S26 Ultra 카메라 프로필
-│   ├── genre_style_guide.md          # 인물/풍경/음식/스트리트 스타일 가이드
-│   └── raw_processing_guide.md       # RAW 파일 처리 베스트 프랙티스
-├── prompts/
-│   └── system_prompt.md              # 사진 전문가 페르소나 시스템 프롬프트
-├── docker-compose.yml         # 원클릭 OpenWebUI + 호스트 LM Studio 연동
-├── Dockerfile.custom          # 이미지/RAW 처리 라이브러리가 사전 빌드된 컨테이너
-├── requirements.txt           # 파이썬 의존성 패키지 명세
-├── test_agent.py              # 로컬 종합 단위 테스트 스크립트
-├── architecture.md            # 시스템 아키텍처 및 시퀀스 다이어그램
-└── README.md
+├── tools/                         # [Workspace > Tools] 에 등록할 도구 코드
+│   ├── photo_analyzer.py          # 1. 사진 정밀 분석기 (EXIF, 히스토그램, 품질 점수)
+│   ├── photo_editor.py            # 2. 사진 보정기 (15개 세부 파라미터 + 9개 프리셋)
+│   └── raw_processor.py           # 3. RAW 현상기 (Canon CR2/CR3, Samsung DNG 등)
+├── filters/                       # [Admin Panel > Functions] 에 등록할 필터 코드
+│   └── photo_agent_filter.py      # 대화 흐름 제어 (이미지 자동 감지 및 가이드 주입)
+├── knowledge/                     # [Workspace > Knowledge] 에 업로드할 지식 문서
+│   ├── photo_editing_basics.md    # 사진 보정 기초 이론
+│   ├── camera_profiles.md         # 카메라별 센서/색감 특성
+│   ├── genre_style_guide.md       # 장르별 보정 스타일 가이드
+│   └── raw_processing_guide.md    # RAW 파일 처리 가이드
+├── prompts/                       # 모델 생성 시 사용할 프롬프트
+│   └── system_prompt.md           # 사진 전문가 페르소나 시스템 프롬프트
+├── test_agent.py                  # 로컬 사전 검증용 테스트 스크립트
+└── architecture.md                # 시스템 아키텍처 상세 문서
 ```
 
 ---
 
-## 🚀 빠른 시작 (Docker Compose)
+## 🛠️ OpenWebUI 등록 가이드 (순서대로 따라하기)
 
-OpenWebUI와 필수 이미지 처리 라이브러리(`rawpy`, `opencv`, `pillow` 등)를 한 번에 빌드하고 실행할 수 있습니다.
+### 1단계: 도구(Tools) 등록
 
-```bash
-# 1. 컨테이너 빌드 및 백그라운드 실행
-docker compose up -d --build
+OpenWebUI 상단/좌측 메뉴에서 **Workspace (작업 공간) → Tools (도구)** 로 이동한 뒤 우측 상단 **`+`** 버튼을 누릅니다.
 
-# 2. 브라우저에서 OpenWebUI 접속
-# http://localhost:8080
-```
+아래 3개 파일의 내용을 각각 복사하여 붙여넣고 저장합니다:
 
-> **LM Studio 연동 안내**:
-> `docker-compose.yml`에 `host.docker.internal:host-gateway` 설정이 포함되어 있어, 호스트 머신에서 LM Studio 서버(포트 1234)를 시작하면 OpenWebUI가 자동으로 감지합니다.
+| 도구 이름 | 소스 파일 위치 | 설명 |
+| :--- | :--- | :--- |
+| **Photo Analyzer** | `tools/photo_analyzer.py` | EXIF, RGB 히스토그램, 노출/화이트밸런스 분석 |
+| **Photo Editor** | `tools/photo_editor.py` | 15개 파라미터 보정, 전/후 비교, 9개 프리셋, 다운로드 |
+| **RAW Processor** | `tools/raw_processor.py` | Canon CR2, Samsung DNG 등 RAW 현상 |
+
+> 📌 **참고**: 각 코드 상단에 `requirements:`가 포함되어 있어, OpenWebUI 저장 시 필요한 패키지가 자동 인식됩니다.
 
 ---
 
-## 🧪 로컬 기능 검증 (단위 테스트)
+### 2단계: 필터(Filter) 등록
 
-OpenWebUI에 등록하기 전, 로컬 환경에서 도구와 필터 동작을 검증할 수 있습니다:
+1. 좌측 하단 관리자 메뉴 → **Admin Panel (관리자 패널) → Functions (함수)** 로 이동합니다.
+2. 우측 상단 **`+`** 버튼을 클릭합니다.
+3. `filters/photo_agent_filter.py` 파일의 전체 내용을 복사하여 붙여넣습니다.
+4. 함수 타입을 **Filter**로 선택하고 저장합니다.
+5. 함수 목록에서 `PhotoAgent Filter`의 **활성화 스위치(ON)**를 켭니다.
+
+---
+
+### 3단계: 지식 베이스(Knowledge) 등록
+
+1. **Workspace (작업 공간) → Knowledge (지식)** 로 이동하여 **`+`** 버튼을 누릅니다.
+2. 이름: `사진 보정 가이드`  
+   설명: `사진 보정 이론, 카메라 프로필, 장르별 스타일 가이드`
+3. 생성된 지식 베이스 화면에 `knowledge/` 폴더 안의 **4개 마크다운 파일**을 드래그하여 업로드합니다:
+   - `photo_editing_basics.md`
+   - `camera_profiles.md`
+   - `genre_style_guide.md`
+   - `raw_processing_guide.md`
+
+---
+
+### 4단계: 전용 모델(Model) 생성 및 연결
+
+1. **Workspace (작업 공간) → Models (모델)** 로 이동하여 **`+`** 버튼을 클릭합니다.
+2. 모델 기본 정보를 입력합니다:
+   - **이름**: `PhotoAgent (사진 보정 전문가)`
+   - **기본 모델(Base Model)**: 현재 로컬에 연결된 Vision 지원 모델 (예: `gemma-4-26b-a3b` 등) 선택
+3. **시스템 프롬프트 (System Prompt)**:
+   - `prompts/system_prompt.md` 파일의 내용을 그대로 복사하여 붙여넣습니다.
+4. **연동 설정**:
+   - **Tools**: 등록한 3개 도구(`Photo Analyzer`, `Photo Editor`, `RAW Processor`) 체크 활성화
+   - **Filters**: `PhotoAgent Filter` 체크 활성화
+   - **Knowledge**: `사진 보정 가이드` 연결
+5. 우측 하단 **저장(Save)**을 누릅니다.
+
+---
+
+### 5단계: 사용하기
+
+1. OpenWebUI 새 채팅을 열고 방금 생성한 **`PhotoAgent`** 모델을 선택합니다.
+2. 사진(JPEG, PNG 또는 RAW 파일)을 드래그하여 첨부하고 메시지를 보냅니다:
+   > *"이 사진 분석하고 어울리는 스타일로 보정해줘"*
+3. AI가 사진의 기술적 상태를 분석한 후 보정 방향을 제안하며, 사용자가 확인하면 보정된 이미지와 비교샷, 다운로드 링크를 제공합니다.
+
+---
+
+## 💬 대화 워크플로우 예시
+
+```text
+[사용자] 사진 첨부 + "색감이 어둡고 칙칙한데 화사하게 바꿔줘"
+   │
+   ▼
+[PhotoAgent] 사진 분석기(analyze_photo) 자동 호출
+   │  - 히스토그램 시각화 및 노출/화이트밸런스 분석
+   │  - "평균 밝기가 85/255로 어둡고 색온도가 차가운 편입니다."
+   │  - 제안:
+   │    1안) 밝기 +20, 색온도 +15, 채도 +20
+   │    2안) 'bright_airy' (밝고 투명한 감성 스냅) 프리셋
+   ▼
+[사용자] "2안으로 진행해줘"
+   │
+   ▼
+[PhotoAgent] 보정기(apply_preset / edit_photo) 실행
+   │  - [BEFORE / AFTER 비교 이미지] 렌더링
+   │  - [보정된 고화질 결과 이미지] 렌더링
+   │  - [📥 보정된 사진 다운로드 (클릭)] 링크 제공
+   ▼
+[사용자] 만족 시 다운로드 / 필요시 "채도만 살짝 더 올려줘" 등 미세 조정 가능
+```
+
+---
+
+## 🎨 지원하는 보정 기능 및 프리셋
+
+### 세부 보정 파라미터 (-100 ~ +100)
+- **노출/대비**: `brightness` (밝기), `contrast` (대비), `highlights` (하이라이트), `shadows` (섀도우), `whites` (화이트), `blacks` (블랙)
+- **색감/화이트밸런스**: `temperature` (색온도), `tint` (틴트), `saturation` (채도), `vibrance` (자연스러운 채도)
+- **디테일/특수효과**: `sharpness` (선명도), `clarity` (선명감), `denoise` (노이즈 제거), `vignette` (비네팅), `grain` (필름 그레인)
+
+### 9가지 스타일 프리셋 (`apply_preset`)
+1. `portrait`: 인물 사진 (부드럽고 자연스러운 피부 톤, 밝은 섀도우)
+2. `landscape`: 풍경 사진 (깊은 대비, 선명한 하늘/자연 채도)
+3. `food`: 음식 사진 (따뜻한 색온도, 생동감 있는 채도)
+4. `street`: 거리/스냅 (강한 대비, 명암 표현, 미세한 텍스처)
+5. `film_vintage`: 레트로 필름 (바랜 톤, 그레인, 비네팅 감성)
+6. `bright_airy`: 밝고 투명한 스냅 (높은 노출, 부드러운 하이라이트)
+7. `moody_dark`: 차분하고 묵직한 분위기 (어두운 노출, 높은 대비)
+8. `golden_hour`: 노을/일몰 (따뜻한 황금빛 오렌지 톤)
+9. `clean_natural`: 정갈한 기본 보정 (과하지 않은 깔끔한 톤 정리)
+
+---
+
+## 🧪 (선택 사항) 로컬 기능 테스트
+
+OpenWebUI에 코드를 등록하기 전, 내 컴퓨터 로컬 환경에서 도구와 필터가 잘 동작하는지 미리 테스트해보고 싶다면 아래 명령어로 실행할 수 있습니다:
 
 ```bash
 python test_agent.py
 ```
-
-- **테스트 항목**:
-  1. 합성 이미지(Data URL) 자동 생성
-  2. `Photo Analyzer`: EXIF, 히스토그램 Base64 이미지, 종합 품질 점수 산출
-  3. `Photo Editor`: 15가지 개별 파라미터 보정 및 전/후 비교 이미지 생성
-  4. `Photo Editor`: `clean_natural` 프리셋 일괄 적용
-  5. `PhotoAgent Filter`: 사용자 이미지 감지 시 워크플로우 컨텍스트 자동 주입(Inlet) 및 후속 옵션 안내(Outlet)
-
----
-
-## 📋 OpenWebUI 설정 가이드
-
-### 1단계: Tool 등록
-
-1. OpenWebUI → **Workspace (작업 공간) → Tools (도구)** → **+** 버튼 클릭
-2. 다음 파일들의 내용을 각각 복사하여 붙여넣고 저장합니다:
-   - `tools/photo_analyzer.py`
-   - `tools/photo_editor.py`
-   - `tools/raw_processor.py`
-3. 최신 OpenWebUI 사양에 맞춘 도구 함수와 UI 진행 상태(`__event_emitter__`)가 적용되어 있습니다.
-
-### 2단계: Filter 등록
-
-1. OpenWebUI → **Admin Panel (관리자 패널) → Functions (함수)** → **+** 버튼 클릭
-2. `filters/photo_agent_filter.py` 내용을 붙여넣고 Type을 **Filter**로 선택
-3. 저장 후 활성화 스위치를 켭니다.
-
-### 3단계: Knowledge Base 생성
-
-1. OpenWebUI → **Workspace → Knowledge (지식)** → **+** 버튼 클릭
-2. 이름: `사진 보정 가이드` / 설명: `사진 보정 이론, 카메라 프로필, 장르별 스타일 가이드`
-3. `knowledge/` 폴더의 4개 파일(`.md`)을 업로드합니다.
-
-### 4단계: 전용 보정 모델 생성/설정
-
-1. OpenWebUI → **Workspace → Models (모델)** → **+** (또는 기존 Gemma 4 모델 편집)
-2. **Name**: `PhotoAgent (사진 보정 전문가)`
-3. **Base Model**: LM Studio의 `gemma-4-26b-a3b` (Vision 지원 모델) 선택
-4. **System Prompt**: `prompts/system_prompt.md` 내용 붙여넣기
-5. **Tools**: 등록한 3개 도구(`Photo Analyzer`, `Photo Editor`, `RAW Processor`) 모두 체크 활성화
-6. **Filters**: `PhotoAgent Filter` 체크 활성화
-7. **Knowledge**: `사진 보정 가이드` 연결
-8. 저장(Save)
-
----
-
-## 💬 대화 및 사용 예시
-
-### 일반 사진 보정 시나리오
-1. **사용자**: 카페에서 찍은 사진 첨부 + *"이 사진 색감이 좀 칙칙한데 예쁘게 보정해줄래?"*
-2. **AI (PhotoAgent)**:
-   - 자동으로 `analyze_photo` 도구 호출
-   - 히스토그램 및 노출/화이트밸런스 분석 결과 보고:
-     > "평균 밝기가 85/255로 약간 어둡고, 색온도가 푸른 톤으로 치우쳐 있습니다. 채도도 낮아 음료의 생동감이 부족합니다."
-   - 추천 방향 제시:
-     > "1. 자연스러운 보정: 밝기 +20, 색온도 +15, 채도 +20, 선명도 +25  
-     >  2. `food` 프리셋 적용: 음식 전용 따뜻하고 화사한 톤  
-     >  어떤 방향으로 진행할까요?"
-3. **사용자**: *"1번 추천대로 해줘"*
-4. **AI**:
-   - `edit_photo` 도구 호출하여 보정 수행
-   - **BEFORE / AFTER 비교 이미지** 및 **보정된 고화질 사진**, **원클릭 다운로드 링크** 제공
-
-### RAW 파일 현상 시나리오
-1. **사용자**: Canon CR2 또는 Samsung DNG 파일 첨부 + *"이 RAW 사진 현상해줘"*
-2. **AI**:
-   - `get_raw_info`로 센서 및 카메라 메타데이터 확인
-   - `process_raw`로 16bit 톤 매핑 및 카메라 화이트밸런스 적용 현상
-   - 현상된 이미지를 대상으로 `analyze_photo` 후 2차 정밀 보정 진행
-
----
-
-## 🎨 주요 보정 파라미터 및 프리셋
-
-### 세부 조정 파라미터 (-100 ~ +100)
-- **기본 노출/색상**: `brightness`, `contrast`, `saturation`, `vibrance`
-- **화이트밸런스**: `temperature` (색온도), `tint` (틴트)
-- **톤 조절**: `highlights`, `shadows`, `whites`, `blacks`
-- **디테일/효과**: `sharpness`, `clarity`, `denoise`, `vignette`, `grain`
-
-### 9가지 스타일 프리셋 (`apply_preset`)
-- `portrait` (화사하고 부드러운 피부 톤)
-- `landscape` (깊은 대비와 푸른 하늘, 풍부한 채도)
-- `food` (따뜻한 색온도와 선명한 색감)
-- `street` (강한 대비와 텍스처, 미세한 그레인)
-- `film_vintage` (바랜 느낌의 필름 감성)
-- `bright_airy` (밝고 투명한 일본 감성 스냅)
-- `moody_dark` (차분하고 묵직한 시네마틱 톤)
-- `golden_hour` (노을빛 따스한 골든아워)
-- `clean_natural` (군더더기 없는 정갈하고 자연스러운 보정)
+*(합성 테스트 이미지를 자동 생성하여 분석, 개별 보정, 프리셋 보정, 필터 동작을 한 번에 검증합니다)*

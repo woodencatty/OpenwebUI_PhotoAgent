@@ -2,7 +2,7 @@
 title: RAW Processor
 author: PhotoAgent
 description: Canon CR2, Samsung DNG 등 RAW 파일을 처리하여 JPEG/PNG로 변환하고, 기본적인 RAW 현상 파라미터를 적용하는 도구입니다.
-requirements: rawpy, numpy, pillow, imageio
+requirements: rawpy, numpy, pillow
 version: 1.0.0
 """
 

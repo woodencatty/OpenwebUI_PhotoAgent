@@ -2,7 +2,7 @@
 title: PhotoAgent Filter
 author: PhotoAgent
 description: 사진 보정 에이전트의 대화 흐름을 제어하는 필터입니다. 이미지 업로드 감지 시 사진 분석 컨텍스트를 자동 주입하고, 보정 결과를 포맷팅합니다.
-requirements: pillow
+requirements: 
 version: 1.0.0
 """
 

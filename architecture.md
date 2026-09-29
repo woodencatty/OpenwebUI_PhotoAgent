@@ -8,10 +8,11 @@
 
 ```mermaid
 graph TB
-    subgraph "OpenWebUI (Docker)"
+    subgraph "OpenWebUI"
         A[사용자 채팅] -->|사진 업로드| B[Filter: PhotoAgent Inlet]
-        B -->|이미지 감지 + 컨텍스트 주입| C[LLM: Gemma 4 26B A3B]
-        C -->|보정 분석 결과| D[Filter: PhotoAgent Outlet]
+        B -->|이미지 감지 + 컨텍스트 주입| C[LLM: Vision 지원 Local LLM]
+        D[Filter: PhotoAgent Outlet] -->|보정 결과 포맷팅/안내| A
+        C -->|응답| D
         
         C -->|도구 호출| E[Tool: 사진 분석기]
         C -->|도구 호출| F[Tool: 사진 보정기]
@@ -20,8 +21,8 @@ graph TB
         H[Knowledge Base: 사진 보정 가이드] -->|RAG| C
     end
     
-    subgraph "LM Studio (호스트)"
-        I[Gemma 4 26B A3B - Vision]
+    subgraph "Local LLM Server (LM Studio / Ollama 등)"
+        I[Gemma 4 26B A3B 등 Vision 모델]
     end
     
     C <-->|OpenAI 호환 API| I
@@ -118,4 +119,4 @@ sequenceDiagram
 | EXIF 분석 | piexif, ExifRead |
 | 히스토그램 | NumPy, Matplotlib |
 | 노이즈 분석 | scikit-image |
-| OpenWebUI | 0.6.x (Docker) |
+| OpenWebUI | 최신 버전 (0.5.x ~ 0.6.x+) |

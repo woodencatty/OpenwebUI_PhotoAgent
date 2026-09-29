@@ -2,7 +2,7 @@
 title: Photo Analyzer
 author: PhotoAgent
 description: 사진의 EXIF 데이터, 히스토그램, 색온도, 노이즈 레벨 등을 종합 분석하여 보정 방향을 제안하는 도구입니다.
-requirements: pillow, numpy, piexif
+requirements: pillow, numpy
 version: 1.0.0
 """
 
