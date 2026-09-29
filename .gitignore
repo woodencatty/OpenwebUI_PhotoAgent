@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# PhotoAgent local outputs
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.cr2
+*.cr3
+*.dng
+

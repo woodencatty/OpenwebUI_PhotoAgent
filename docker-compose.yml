@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  open-webui:
+    # 커스텀 Dockerfile을 사용하여 이미지 처리 의존성을 사전 빌드합니다.
+    build:
+      context: .
+      dockerfile: Dockerfile.custom
+    # 빌드하지 않고 공식 이미지를 바로 쓰려면 아래 라인의 주석을 해제하고 위 build를 주석 처리하세요.
+    # image: ghcr.io/open-webui/open-webui:main
+    container_name: openwebui-photoagent
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # 호스트의 LM Studio (Gemma 4 26B A3B 등) 연결 설정
+      - OPENAI_API_BASE_URL=http://host.docker.internal:1234/v1
+      - OPENAI_API_KEY=lm-studio
+      # 로컬 단독 사용 시 간편 로그인 옵션 (필요시 활성화)
+      # - WEBUI_AUTH=False
+    volumes:
+      # OpenWebUI 데이터 지속성 유지
+      - open-webui-data:/app/backend/data
+      # 보정된 사진 및 RAW 결과물 호스트 디렉토리 동기화
+      - ./uploads:/app/backend/data/uploads
+    extra_hosts:
+      # 컨테이너 내부에서 호스트 머신(LM Studio)으로 접근하기 위한 설정
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  open-webui-data:
